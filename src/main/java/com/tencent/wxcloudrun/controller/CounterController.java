@@ -45,7 +45,7 @@ public class CounterController {
       count = counter.get().getCount();
     }
 
-    return ApiResponse.ok(count);
+    return ApiResponse.success(count);
   }
 
 
@@ -68,15 +68,15 @@ public class CounterController {
       counter.setId(1);
       counter.setCount(count);
       counterService.upsertCount(counter);
-      return ApiResponse.ok(count);
+      return ApiResponse.success(count);
     } else if (request.getAction().equals("clear")) {
       if (!curCounter.isPresent()) {
-        return ApiResponse.ok(0);
+        return ApiResponse.success(0);
       }
       counterService.clearCount(1);
-      return ApiResponse.ok(0);
+      return ApiResponse.success(0);
     } else {
-      return ApiResponse.error("参数action错误");
+      return ApiResponse.fail("参数action错误");
     }
   }
   

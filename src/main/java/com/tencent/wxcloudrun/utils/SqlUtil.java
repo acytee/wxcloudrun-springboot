@@ -51,7 +51,7 @@ public class SqlUtil {
             throw new Exception("记录ID不能为空");
         }
         where.setPageSize(SqlUtil.FLAG_NO_FIELD);
-        List list = list(sqlStr, where, whereKeys, whereValues, appendWhere).getData();
+        List list = get(sqlStr, where, whereKeys, whereValues, appendWhere).getData();
         if (list == null || list.size() == 0) {
             throw new Exception(ApiResponse.failNoData().getMessage());
         }
@@ -67,7 +67,7 @@ public class SqlUtil {
      * @param whereValues 可以为空，where条件参数值
      * @param appendWhere 可以为空，扩展条件，如：exists等复杂where条件
      */
-    public ResultList list(String sqlStr, BaseBodyGet where, Map<String, String> whereKeys, Map<String, Object> whereValues, String appendWhere) {
+    public ResultList get(String sqlStr, BaseBodyGet where, Map<String, String> whereKeys, Map<String, Object> whereValues, String appendWhere) {
         if (where == null) {
             where = new BaseBodyGet();
         }

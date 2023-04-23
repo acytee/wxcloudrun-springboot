@@ -171,8 +171,6 @@ public class StrUtil {
     }
 
     public static void main(String[] args) {
-        Object s1=null;
-        String s2="";
-        System.out.println(s1.equals(s2));
+        System.out.println(uuid());
     }
 }

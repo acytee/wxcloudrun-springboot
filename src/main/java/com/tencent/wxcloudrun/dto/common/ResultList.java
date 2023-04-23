@@ -5,7 +5,7 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * 创建企业账户请求body
+ * 列表信息
  *
  * @author : chenzg
  * @date : 2022-07-19 17:18:42

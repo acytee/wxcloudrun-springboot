@@ -14,14 +14,13 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * 实体代码生成工具
+ * 代码生成工具，通过表名生成dao、dto、service，controller代码
  *
  * @author chenzg
  */
 public class EntityBatch {
 
     private static String projectDir = System.getProperty("user.dir");
-    private static String type = "manage";
     private static String tableSchema = "home_parking_space";
     private static String pathSTr = projectDir + "\\src\\main\\java\\com\\tencent\\wxcloudrun";
     private static String controllerSTr = projectDir + "\\src\\main\\java\\com\\tencent\\wxcloudrun\\controller";
@@ -30,6 +29,7 @@ public class EntityBatch {
     private static String tableComment;
     private static String className;
     private static String pkName;
+    private static String pnName;
     private static String driverClassName = "com.mysql.cj.jdbc.Driver";
     private static String url = "jdbc:mysql://sh-cynosdbmysql-grp-jo6wlxpw.sql.tencentcdb.com:26214/home_parking_space";
     private static String username = "root";
@@ -52,7 +52,7 @@ public class EntityBatch {
         }*/
 //        String table = "plugin_goods,plugin_shop";
 //        String table = "plugin_goods_norms_price";
-        String table = "Counters";
+        String table = "pt_";
         Class.forName(driverClassName);
         Connection conn = DriverManager.getConnection(url, username, password);
         try {
@@ -66,26 +66,26 @@ public class EntityBatch {
                 }
             }
         } catch (Exception e) {
-
+            e.printStackTrace();
         } finally {
             conn.close();
         }
 
     }
 
-    private static StringBuilder createService(String pn, String tableComment) throws Exception {
+    private static StringBuilder createService(String tableComment) throws Exception {
         StringBuilder str = new StringBuilder("package com.tencent.wxcloudrun.service;\n\n");
         str.append("import com.tencent.wxcloudrun.config.ApiResponse;\n" +
-                "import com.tencent.wxcloudrun.dto.BaseBodyDelete;\n" +
-                "import com.tencent.wxcloudrun.dto.BaseBodyDetail;\n" +
-                "import com.tencent.wxcloudrun.dto.ResultList;\n" +
+                "import com.tencent.wxcloudrun.dto.common.BaseBodyDelete;\n" +
+                "import com.tencent.wxcloudrun.dto.common.BaseBodyDetail;\n" +
+                "import com.tencent.wxcloudrun.dto.common.ResultList;\n" +
                 "import com.tencent.wxcloudrun.utils.SqlUtil;\n" +
                 "import com.tencent.wxcloudrun.utils.StrUtil;\n" +
-                "import com.tencent.wxcloudrun.dao." + pn + "." + className + "Repository;\n" +
-                "import com.tencent.wxcloudrun.model." + pn + "." + className + ";\n" +
-                "import com.tencent.wxcloudrun.dto." + pn + "." + className + "Get;\n" +
-                "import com.tencent.wxcloudrun.dto." + pn + "." + className + "Post;\n" +
-                "import com.tencent.wxcloudrun.dto." + pn + "." + className + "Put;\n" +
+                "import com.tencent.wxcloudrun.dao." + className + "Repository;\n" +
+                "import com.tencent.wxcloudrun.model." + className + ";\n" +
+                "import com.tencent.wxcloudrun.dto." + className + "Get;\n" +
+                "import com.tencent.wxcloudrun.dto." + className + "Post;\n" +
+                "import com.tencent.wxcloudrun.dto." + className + "Put;\n" +
                 "import org.springframework.beans.BeanUtils;\n" +
                 "import org.springframework.beans.factory.annotation.Autowired;\n" +
                 "import org.springframework.stereotype.Service;\n" +
@@ -101,6 +101,7 @@ public class EntityBatch {
                 " * @date : " + DateUtil.dateString1(new Date()) + "\n */\n");
         String sn = className;
         sn = sn.substring(0, 1).toLowerCase() + sn.substring(1);
+        String fn = pkName.substring(0, 1).toUpperCase() + pkName.substring(1);
         str.append("@Service\n" +
                 "public class " + className + "Service {\n" +
                 "\n" +
@@ -113,7 +114,7 @@ public class EntityBatch {
                 "    public ApiResponse post(" + className + "Post body) {\n" +
                 "        " + className + " obj = new " + className + "();\n" +
                 "        BeanUtils.copyProperties(body, obj, StrUtil.getNullPropertyNames(body));\n" +
-                "        String id = " + sn + "Repository.save(obj).get" + toClassName(pkName) + "();\n" +
+                "        String id = " + sn + "Repository.save(obj).get" + fn + "();\n" +
                 "        return ApiResponse.success(id);\n" +
                 "    }\n" +
                 "\n" +
@@ -123,19 +124,17 @@ public class EntityBatch {
                 "        if (!optional.isPresent()) {\n" +
                 "            return ApiResponse.failNoData();\n" +
                 "        }\n" +
-                "        " + sn + "Repository.deleteBy" + toClassName(pkName) + "(Arrays.asList(body.getId().split(\",\")));\n" +
+                "        " + sn + "Repository.deleteBy" + fn + "(Arrays.asList(body.getId().split(\",\")));\n" +
                 "        return ApiResponse.success();\n" +
                 "    }\n" +
                 "\n" +
                 "    @Transactional(rollbackOn = Exception.class)\n" +
                 "    public ApiResponse put(" + className + "Put body) {\n" +
-                "        Optional<" + className + "> optional = " + sn + "Repository.findById(body.getId());\n" +
+                "        Optional<" + className + "> optional = " + sn + "Repository.findById(body.get" + fn + "());\n" +
                 "        if (!optional.isPresent()) {\n" +
                 "            return ApiResponse.failNoData();\n" +
                 "        }\n" +
                 "        " + className + " obj = optional.get();\n" +
-                "        obj.setUpdateTime(new Date());\n" +
-                "        obj.setUpdateUserId(body.getCreateUserId());\n" +
                 "        BeanUtils.copyProperties(body, obj, StrUtil.getNullPropertyNames(body));\n" +
                 "        return ApiResponse.success();\n" +
                 "    }\n" +
@@ -154,7 +153,7 @@ public class EntityBatch {
                 "        return sqlUtil.detail(sql, body, null, null, null);\n" +
                 "    }\n" +
                 "}");
-        String dir = serviceSTr + "\\" + pn + "\\service";
+        String dir = serviceSTr;
         new File(dir).mkdirs();
         File f = new File(dir + "/" + className + "Service.java");
         if (!f.exists()) {
@@ -163,78 +162,68 @@ public class EntityBatch {
         return str;
     }
 
-    private static StringBuilder createController(String pn, String tableComment) throws Exception {
-        StringBuilder str = new StringBuilder("package com.wp.seal.v11." + type + ".plugins." + pn + ".web;\n\n");
-        str.append("import com.tencent.wxcloudrun.dto.").append(pn).append(".").append(className).append("Post;\n");
-        str.append("import com.tencent.wxcloudrun.dto.").append(pn).append(".").append(className).append("Put;\n");
-        str.append("import com.tencent.wxcloudrun.dto.").append(pn).append(".").append(className).append("Get;\n");
+    private static StringBuilder createController(String tableComment) throws Exception {
+        StringBuilder str = new StringBuilder("package com.tencent.wxcloudrun.controller;\n\n");
+        str.append("import com.tencent.wxcloudrun.dto.").append(className).append("Post;\n");
+        str.append("import com.tencent.wxcloudrun.dto.").append(className).append("Put;\n");
+        str.append("import com.tencent.wxcloudrun.dto.").append(className).append("Get;\n");
         str.append("import com.tencent.wxcloudrun.service.").append(className).append("Service;\n");
         str.append("import com.tencent.wxcloudrun.config.ApiResponse;\n" +
-                "import com.tencent.wxcloudrun.model.JsonPage2;\n" +
-                "import com.tencent.wxcloudrun.dto.BaseBodyDelete;\n" +
-                "import com.tencent.wxcloudrun.dto.BaseBodyDetail;\n" +
+                "import com.tencent.wxcloudrun.dto.common.JsonPage;\n" +
+                "import com.tencent.wxcloudrun.dto.common.BaseBodyDelete;\n" +
+                "import com.tencent.wxcloudrun.dto.common.BaseBodyDetail;\n" +
                 "import io.swagger.annotations.Api;\n" +
                 "import io.swagger.annotations.ApiOperation;\n" +
                 "import org.springframework.beans.factory.annotation.Autowired;\n" +
-                "import org.springframework.security.access.prepost.PreAuthorize;\n" +
                 "import org.springframework.web.bind.annotation.*;\n\n");
         str.append("/**\n" +
                 " * " + tableComment + "\n" +
                 " *\n" +
                 " * @author : chenzg\n" +
                 " * @date : " + DateUtil.dateString1(new Date()) + "\n */\n");
-        String url = className;
-        url = lowerUnderscore(url);
+        String url = lowerUnderscore(className);
         url = url.replace("_", "/");
         str.append("@Api(tags = {\"" + tableComment + "\"})\n" +
                 "@RequestMapping(\"/" + url + "\")\n" +
                 "@RestController\n");
         String sn = className + "Service";
         sn = sn.substring(0, 1).toLowerCase() + sn.substring(1);
-        String s1 = "hasAnyAuthority('ADMIN')  AND @mpa.init(#body)";
-        String s2 = "hasAnyAuthority('SHOP','ADMIN')  AND @mpa.init(#body)";
-
         str.append("public class " + className + "Controller {\n" +
                 "\n" +
                 "    @Autowired\n" +
                 "    private " + className + "Service " + sn + ";\n" +
                 "\n" +
                 "    @ApiOperation(\"创建\")\n" +
-                "    @PreAuthorize(\"" + s1 + "\")\n" +
                 "    @PostMapping\n" +
                 "    public ApiResponse post(@RequestBody " + className + "Post body) {\n" +
                 "        return " + sn + ".post(body);\n" +
                 "    }\n" +
                 "\n" +
                 "    @ApiOperation(\"删除\")\n" +
-                "    @PreAuthorize(\"" + s1 + "\")\n" +
-                "    @DeleteMapping(\"/delete\")\n" +
+                "    @DeleteMapping\n" +
                 "    public ApiResponse delete(@RequestBody BaseBodyDelete body) {\n" +
                 "        return " + sn + ".delete(body);\n" +
                 "    }\n" +
                 "\n" +
                 "    @ApiOperation(\"修改\")\n" +
-                "    @PreAuthorize(\"" + s1 + "\")\n" +
-                "    @PutMapping(\"/put\")\n" +
+                "    @PutMapping\n" +
                 "    public ApiResponse put(@RequestBody " + className + "Put body) {\n" +
                 "        return " + sn + ".put(body);\n" +
                 "    }\n" +
                 "\n" +
                 "    @ApiOperation(\"列表\")\n" +
-                "    @PreAuthorize(\"" + s2 + "\")\n" +
                 "    @PostMapping(\"/get\")\n" +
                 "    public ApiResponse get(@RequestBody " + className + "Get body) {\n" +
-                "        return ApiResponse.success(new JsonPage2(" + sn + ".get(body), body));\n" +
+                "        return ApiResponse.success(new JsonPage(" + sn + ".get(body), body));\n" +
                 "    }\n" +
                 "\n" +
                 "    @ApiOperation(\"详情\")\n" +
-                "    @PreAuthorize(\"" + s2 + "\")\n" +
                 "    @PostMapping(\"/detail\")\n" +
                 "    public ApiResponse detail(@RequestBody BaseBodyDetail body) throws Exception {\n" +
                 "        return " + sn + ".detail(body);\n" +
                 "    }\n" +
                 "}");
-        String dir = controllerSTr + "\\" + pn + "\\web";
+        String dir = controllerSTr;
         new File(dir).mkdirs();
         File f = new File(dir + "/" + className + "Controller.java");
         if (!f.exists()) {
@@ -243,19 +232,18 @@ public class EntityBatch {
         return str;
     }
 
-    private static StringBuilder createBodyPost(String pn, String tableComment) throws Exception {
-        StringBuilder str = new StringBuilder("package com.tencent.wxcloudrun.dto." + pn + ";\n\n");
-        str.append("import com.tencent.wxcloudrun.model." + pn + "." + className + ";\n");
+    private static StringBuilder createBodyPost(String tableComment) throws Exception {
+        StringBuilder str = new StringBuilder("package com.tencent.wxcloudrun.dto;\n\n");
+        str.append("import com.tencent.wxcloudrun.model." + className + ";\n");
         str.append("import io.swagger.annotations.ApiModel;\n");
-        str.append("import lombok.Data;\n" +
-                "import lombok.EqualsAndHashCode;\n\n");
+        str.append("import lombok.Data;\nimport lombok.EqualsAndHashCode;\n\n");
         str.append("/**\n * @author : chenzg\n" +
                 " * @date : " + DateUtil.dateString1(new Date()) + "\n */\n");
         str.append("@Data\n" +
                 "@EqualsAndHashCode(callSuper = true)\n" +
                 "@ApiModel(description = \"" + tableComment + "\", value = \"" + className + "Post\")\n");
         str.append("public class " + className + "Post extends " + className + " {\n}");
-        String dir = pathSTr + "\\request\\" + pn;
+        String dir = pathSTr + "\\dto";
         new File(dir).mkdirs();
         File f = new File(dir + "/" + className + "Post.java");
         if (!f.exists()) {
@@ -264,10 +252,10 @@ public class EntityBatch {
         return str;
     }
 
-    private static StringBuilder createBodyPut(String pn, String tableComment) throws Exception {
-        StringBuilder str = new StringBuilder("package com.tencent.wxcloudrun.dto." + pn + ";\n\n");
-        str.append("import com.tencent.wxcloudrun.dto.BaseBody;\n");
-        str.append("import com.tencent.wxcloudrun.model." + pn + "." + className + ";\n");
+    private static StringBuilder createBodyPut(String tableComment) throws Exception {
+        StringBuilder str = new StringBuilder("package com.tencent.wxcloudrun.dto;\n\n");
+        str.append("import com.tencent.wxcloudrun.dto.common.BaseBody;\n");
+        str.append("import com.tencent.wxcloudrun.model." + className + ";\n");
         str.append("import io.swagger.annotations.ApiModel;\n");
         str.append("import lombok.Data;\n" +
                 "import lombok.EqualsAndHashCode;\n\n");
@@ -281,7 +269,7 @@ public class EntityBatch {
         strId = toClassName(strId) + "Id";*/
         str.append("public class " + className + "Put extends " + className + " {\n" +
                 "}");
-        String dir = pathSTr + "\\request\\" + pn;
+        String dir = pathSTr + "\\dto";
         new File(dir).mkdirs();
         File f = new File(dir + "/" + className + "Put.java");
         if (!f.exists()) {
@@ -290,9 +278,9 @@ public class EntityBatch {
         return str;
     }
 
-    private static StringBuilder createBodyGet(String pn, String tableComment) throws Exception {
-        StringBuilder str = new StringBuilder("package com.tencent.wxcloudrun.dto." + pn + ";\n\n");
-        str.append("import com.tencent.wxcloudrun.dto.BaseBodyGet;\n");
+    private static StringBuilder createBodyGet(String tableComment) throws Exception {
+        StringBuilder str = new StringBuilder("package com.tencent.wxcloudrun.dto;\n\n");
+        str.append("import com.tencent.wxcloudrun.dto.common.BaseBodyGet;\n");
         str.append("import io.swagger.annotations.ApiModel;\n");
         str.append("import lombok.Data;\n" +
                 "import lombok.EqualsAndHashCode;\n\n");
@@ -306,7 +294,7 @@ public class EntityBatch {
                 "        this.setOrderBy(\"order by t1.create_time desc\");\n" +
                 "    }\n" +
                 "}");
-        String dir = pathSTr + "\\request\\" + pn;
+        String dir = pathSTr + "\\dto";
         new File(dir).mkdirs();
         File f = new File(dir + "/" + className + "Get.java");
         if (!f.exists()) {
@@ -315,9 +303,9 @@ public class EntityBatch {
         return str;
     }
 
-    private static StringBuilder createRepository(String pn) throws Exception {
-        StringBuilder str = new StringBuilder("package com.tencent.wxcloudrun.dao." + pn + ";\n\n");
-        str.append("import com.tencent.wxcloudrun.model." + pn + "." + className + ";\n");
+    private static StringBuilder createRepository() throws Exception {
+        StringBuilder str = new StringBuilder("package com.tencent.wxcloudrun.dao;\n\n");
+        str.append("import com.tencent.wxcloudrun.model." + className + ";\n");
         str.append("import org.springframework.data.jpa.repository.JpaRepository;\n" +
                 "import org.springframework.data.jpa.repository.Modifying;\n" +
                 "import org.springframework.data.jpa.repository.Query;\n" +
@@ -328,7 +316,7 @@ public class EntityBatch {
         str.append("/**\n * @author : chenzg\n" +
                 " * @date : " + DateUtil.dateString1(new Date()) + "\n */\n");
         str.append("public interface " + className + "Repository extends JpaRepository<" + className + ", String> {\n}");
-        String dir = pathSTr + "\\dao\\" + pn;
+        String dir = pathSTr + "\\dao";
         new File(dir).mkdirs();
         File f = new File(dir + "/" + className + "Repository.java");
         if (!f.exists()) {
@@ -338,28 +326,28 @@ public class EntityBatch {
     }
 
     private static void createEntity(String driverClassName, String url, String username, String password) throws Exception {
-        String cn = tableName.substring(tableName.indexOf("_") + 1);
-        String pn = cn.split("_")[0];
-        if (!tableName.startsWith("plugin_")) {
-            cn = tableName;
-            pn = "common";
+        className = toClassName(tableName);
+        if (tableName.indexOf("_") > 0) {
+            className = toClassName(tableName.substring(tableName.indexOf("_") + 1));
         }
-        className = toClassName(cn);
-        pkName = cn.substring(cn.lastIndexOf("_"));
-        pkName = pkName + "_id";
-        String dir = pathSTr + "\\entity\\" + pn;
-        StringBuilder post = createBodyPost(pn, tableComment);
-        StringBuilder put = createBodyPut(pn, tableComment);
-        StringBuilder get = createBodyGet(pn, tableComment);
-        StringBuilder service = createService(pn, tableComment);
-        StringBuilder controller = createController(pn, tableComment);
-        StringBuilder jpaRepository = createRepository(pn);
-        StringBuilder stringBuilder = new StringBuilder("package com.tencent.wxcloudrun.model." + pn + ";\n");
+        pnName = lowerUnderscore(className);
+        if (pnName.indexOf("_") > 0) {
+            pnName = pnName.substring(pnName.lastIndexOf("_") + 1);
+        }
+        pkName = pnName + "Id";
+        String dir = pathSTr + "\\model";
+        StringBuilder post = createBodyPost(tableComment);
+        StringBuilder put = createBodyPut(tableComment);
+        StringBuilder get = createBodyGet(tableComment);
+        StringBuilder service = createService(tableComment);
+        StringBuilder controller = createController(tableComment);
+        StringBuilder jpaRepository = createRepository();
+        StringBuilder stringBuilder = new StringBuilder("package com.tencent.wxcloudrun.model;\n");
         StringBuilder queryField = new StringBuilder();
         if (tableName.length() > 0) {
             stringBuilder.append("\n" +
-                    "import com.tencent.wxcloudrun.dto.IBody;\n" +
-                    "import com.tencent.wxcloudrun.exception.EnumValid;\n" +
+                    "import com.tencent.wxcloudrun.dto.common.IBody;\n" +
+                    "import com.tencent.wxcloudrun.dto.common.EnumValid;\n" +
                     "import com.tencent.wxcloudrun.utils.StrUtil;\n" +
                     "import io.swagger.annotations.ApiModel;\n" +
                     "import io.swagger.annotations.ApiModelProperty;\n" +
@@ -495,7 +483,8 @@ public class EntityBatch {
                         } else if ("mediumblob".equals(columnType)) {
                             _text = "\", columnDefinition = \"mediumblob\"";
                         }
-                        sbVar.append("\t@Column(name = \"`" + columnName + "`").append(_text).append(")\r\n");
+                        String nullable = StrUtil.equalsIgnoreCase("no", isNullAble) ? ", nullable = false" : "";
+                        sbVar.append("\t@Column(name = \"`").append(columnName).append("`").append(_text).append(nullable).append(")\r\n");
                         String fn = "\t@ApiModelProperty(notes = \"" + columnComment + "\", example = \"" + defaultValue + "\")\r\n";
                         String paramName = toParamName(columnName);
                         if ("Integer".equals(fType)) {
@@ -548,8 +537,8 @@ public class EntityBatch {
                     }
                     boolean isDel = pros.contains("delete_status");
                     if (!isDel) {
-                        service.insert(service.indexOf("        return sqlUtil.list("), "        body.setDeleteStatus(sqlUtil.FLAG_NO_FIELD);\n");
-                        service.insert(service.indexOf("        return sqlUtil.detail("), "        body.setDeleteStatus(sqlUtil.FLAG_NO_FIELD);\n");
+                        service.insert(service.indexOf("        return sqlUtil.get("), "        body.setDeleteStatus(SqlUtil.FLAG_NO_FIELD);\n");
+                        service.insert(service.indexOf("        return sqlUtil.detail("), "        body.setDeleteStatus(SqlUtil.FLAG_NO_FIELD);\n");
                     }
                     for (String p : pros) {
                         String fn = toParamName(p);
@@ -659,16 +648,16 @@ public class EntityBatch {
             if (!s1.contains("List<")) {
                 s1 = s1.replace("import java.util.List;\n\n", "");
             }
-            File f1 = new File(pathSTr + "\\dao\\" + pn + "/" + className + "Repository.java");
+            File f1 = new File(pathSTr + "\\dao/" + className + "Repository.java");
             FileUtil.writeFile(s1.getBytes(StandardCharsets.UTF_8), f1.getAbsolutePath());
 
-            File f2 = new File(pathSTr + "\\request\\" + pn + "/" + className + "Post.java");
+            File f2 = new File(pathSTr + "\\dto/" + className + "Post.java");
             FileUtil.writeFile(post.toString().getBytes(StandardCharsets.UTF_8), f2.getAbsolutePath());
 
-            File f3 = new File(pathSTr + "\\request\\" + pn + "/" + className + "Get.java");
+            File f3 = new File(pathSTr + "\\dto/" + className + "Get.java");
             FileUtil.writeFile(get.toString().getBytes(StandardCharsets.UTF_8), f3.getAbsolutePath());
 
-            File f4 = new File(pathSTr + "\\request\\" + pn + "/" + className + "Put.java");
+            File f4 = new File(pathSTr + "\\dto/" + className + "Put.java");
             FileUtil.writeFile(put.toString().getBytes(StandardCharsets.UTF_8), f4.getAbsolutePath());
 
             String serviceStr = service.toString();
@@ -677,16 +666,17 @@ public class EntityBatch {
                 tmp = tmp.substring(0, tmp.length() - 1);
             }
             serviceStr = serviceStr.replace("queryField", tmp);
-            File f5 = new File(serviceSTr + "\\" + pn + "/service/" + className + "Service.java");
+            File f5 = new File(serviceSTr + "/" + className + "Service.java");
             FileUtil.writeFile(serviceStr.getBytes(StandardCharsets.UTF_8), f5.getAbsolutePath());
 
-            File f6 = new File(controllerSTr + "\\" + pn + "/web/" + className + "Controller.java");
+            File f6 = new File(controllerSTr + "/" + className + "Controller.java");
             FileUtil.writeFile(controller.toString().getBytes(StandardCharsets.UTF_8), f6.getAbsolutePath());
-
+            System.out.println("创建完成!");
         }
     }
 
     private static String toParamName(String field) {
+        field = lowerUnderscore(field);
         return CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, field);
     }
 

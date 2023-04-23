@@ -1,17 +1,30 @@
 server:
   port: 80
+  servlet:
+    context-path: /
 
+enable:
+  swagger: true
 
 spring:
+  jpa:
+    database-platform: org.hibernate.dialect.MySQL5InnoDBDialect
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+      naming:
+        #关闭自动下划线
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
   datasource:
+#    driver-class-name: com.mysql.cj.jdbc.Driver
+#    url: jdbc:mysql://${MYSQL_ADDRESS}/${MYSQL_DATABASE:home_parking_space}
+#    username: ${MYSQL_USERNAME}
+#    password: ${MySQL_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${MYSQL_ADDRESS}/${MYSQL_DATABASE:home_parking_space}
-    username: ${MYSQL_USERNAME}
-    password: ${MySQL_PASSWORD}
+    url: jdbc:mysql://localhost:3366/pt?serverTimezone=Hongkong&useUnicode=true&characterEncoding=utf8
+    username: root
+    password: 123456
   mvc:
     view:
       suffix: .html
       prefix: /
-
-mybatis:
-  mapper-locations: classpath*:mapper/*Mapper.xml
